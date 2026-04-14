@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energia Sunny — Sopimusgeneraattori</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #DAA520;
+            --primary-dark: #B8860B;
+            --primary-light: #F5E6B8;
+            --primary-bg: #FFFDF7;
+            --white: #FFFFFF;
+            --text: #2D2D2D;
+            --text-light: #777;
+            --border: #E0D5B5;
+            --radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--primary-bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ---- HEADER ---- */
+        .header {
+            background: var(--primary);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .header img {
+            height: 48px;
+            width: auto;
+            filter: brightness(0) invert(1);
+        }
+        .header-text h1 {
+            color: var(--white);
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .header-text span {
+            color: rgba(255,255,255,0.8);
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        /* ---- PROGRESS BAR ---- */
+        .progress {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 28px 16px 12px;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 0 0 auto;
+            cursor: pointer;
+        }
+        .progress-circle {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; font-size: 14px;
+            border: 2px solid #ccc;
+            color: #bbb;
+            background: var(--white);
+            transition: all 0.3s;
+        }
+        .progress-step.active .progress-circle,
+        .progress-step.completed .progress-circle {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: var(--white);
+        }
+        .progress-label {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 5px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .progress-step.active .progress-label,
+        .progress-step.completed .progress-label {
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+        .progress-line {
+            flex: 1;
+            height: 2px;
+            background: #ddd;
+            margin-top: 17px;
+            min-width: 24px;
+            transition: background 0.3s;
+        }
+        .progress-line.completed { background: var(--primary); }
+
+        /* ---- MAIN CARD ---- */
+        .main {
+            max-width: 680px;
+            margin: 0 auto 40px;
+            padding: 0 16px;
+        }
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+            padding: 32px 28px;
+        }
+        .step-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 24px;
+        }
+
+        /* ---- FORM FIELDS ---- */
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+        .form-row > .form-group { flex: 1; }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            height: 44px;
+            padding: 0 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            color: var(--text);
+            background: var(--white);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(218,165,32,0.12);
+        }
+        .form-group textarea {
+            height: 90px;
+            padding: 12px 14px;
+            resize: vertical;
+        }
+        .form-group .auto-value {
+            height: 44px;
+            padding: 0 14px;
+            display: flex;
+            align-items: center;
+            background: #f9f6ee;
+            border: 1.5px solid var(--primary-light);
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        /* ---- RADIO CARDS ---- */
+        .radio-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .radio-option {
+            flex: 1;
+            min-width: 120px;
+            position: relative;
+        }
+        .radio-option input { position: absolute; opacity: 0; }
+        .radio-option label {
+            display: block;
+            padding: 11px 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .radio-option input:checked + label {
+            border-color: var(--primary);
+            background: rgba(218,165,32,0.08);
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        /* ---- CHECKBOX ---- */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px; height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        /* ---- TOGGLE ---- */
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+        }
+        .toggle-group .radio-option { min-width: 80px; flex: 0; }
+
+        /* ---- NUMBER SPINNER ---- */
+        .number-group {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+        .number-group input {
+            text-align: center;
+            border-radius: 0;
+            width: 70px;
+            -moz-appearance: textfield;
+        }
+        .number-group input::-webkit-inner-spin-button { display: none; }
+        .number-btn {
+            width: 44px; height: 44px;
+            border: 1.5px solid #ddd;
+            background: var(--white);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-dark);
+            transition: background 0.2s;
+        }
+        .number-btn:hover { background: var(--primary-light); }
+        .number-btn:first-child { border-radius: 8px 0 0 8px; }
+        .number-btn:last-child { border-radius: 0 8px 8px 0; }
+
+        /* ---- NAVIGATION ---- */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .btn {
+            height: 46px;
+            padding: 0 28px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+        }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary {
+            background: var(--white);
+            color: var(--primary-dark);
+            border: 1.5px solid var(--primary);
+        }
+        .btn-secondary:hover { background: rgba(218,165,32,0.06); }
+        .btn-download {
+            background: #2e7d32;
+            color: var(--white);
+            border: none;
+            height: 52px;
+            font-size: 16px;
+            padding: 0 32px;
+            margin: 0 auto;
+        }
+        .btn-download:hover { background: #1b5e20; }
+
+        /* ---- SUMMARY ---- */
+        .summary-section {
+            margin-bottom: 24px;
+        }
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .summary-header h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary-dark);
+        }
+        .summary-edit {
+            font-size: 13px;
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 6px 16px;
+            font-size: 14px;
+        }
+        .summary-label {
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        .summary-value {
+            font-weight: 500;
+        }
+        .summary-divider {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 16px 0;
+        }
+        .price-highlight {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            text-align: center;
+            margin: 16px 0;
+        }
+        .download-area {
+            text-align: center;
+            padding-top: 8px;
+        }
+
+        /* ---- CONDITIONAL ---- */
+        .conditional { display: none; }
+        .conditional.visible { display: block; }
+        .conditional-row { display: none; }
+        .conditional-row.visible { display: flex; }
+
+        /* ---- STEP VISIBILITY ---- */
+        .step { display: none; }
+        .step.active { display: block; }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 560px) {
+            .card { padding: 24px 18px; }
+            .form-row { flex-direction: column; gap: 0; }
+            .form-row > .form-group { flex: 1 1 auto !important; }
+            .radio-group { flex-direction: column; }
+            .radio-option { min-width: 100%; }
+            .summary-grid { grid-template-columns: 1fr; }
+            .progress-label { font-size: 10px; }
+            .nav-buttons { gap: 10px; }
+            .btn { padding: 0 18px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<div class="header">
+    <img src="logo.webp" alt="Energia Sunny" onerror="this.style.display='none'">
+    <div class="header-text">
+        <h1>Energia Sunny</h1>
+        <span>Sopimusgeneraattori</span>
+    </div>
+</div>
+
+<!-- ============ PROGRESS ============ -->
+<div class="progress" id="progress">
+    <div class="progress-step active" data-step="1" onclick="goToStep(1)">
+        <div class="progress-circle">1</div>
+        <div class="progress-label">Asiakas</div>
+    </div>
+    <div class="progress-line" data-line="1"></div>
+    <div class="progress-step" data-step="2" onclick="goToStep(2)">
+        <div class="progress-circle">2</div>
+        <div class="progress-label">Kohde</div>
+    </div>
+    <div class="progress-line" data-line="2"></div>
+    <div class="progress-step" data-step="3" onclick="goToStep(3)">
+        <div class="progress-circle">3</div>
+        <div class="progress-label">Järjestelmä</div>
+    </div>
+    <div class="progress-line" data-line="3"></div>
+    <div class="progress-step" data-step="4" onclick="goToStep(4)">
+        <div class="progress-circle">4</div>
+        <div class="progress-label">Hinta</div>
+    </div>
+    <div class="progress-line" data-line="4"></div>
+    <div class="progress-step" data-step="5" onclick="goToStep(5)">
+        <div class="progress-circle">5</div>
+        <div class="progress-label">Yhteenveto</div>
+    </div>
+</div>
+
+<!-- ============ MAIN CONTENT ============ -->
+<div class="main">
+<div class="card">
+
+<!-- ======== STEP 1: ASIAKASTIEDOT ======== -->
+<div class="step active" id="step-1">
+    <div class="step-title">Asiakastiedot</div>
+
+    <div class="form-group">
+        <label>Asiakastyyppi</label>
+        <div class="radio-group">
+            <div class="radio-option">
+                <input type="radio" name="customerType" id="ct-private" value="private" checked onchange="toggleCustomerType()">
+                <label for="ct-private">Yksityishenkilö</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="customerType" id="ct-company" value="company" onchange="toggleCustomerType()">
+                <label for="ct-company">Yritys</label>
+            </div>
+        </div>
+    </div>
+
+    <div id="private-fields">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Etunimi</label>
+                <input type="text" id="firstName" placeholder="Matti">
+            </div>
+            <div class="form-group">
+                <label>Sukunimi</label>
+                <input type="text" id="lastName" placeholder="Meikäläinen">
+            </div>
+        </div>
+    </div>
+
+    <div id="company-fields" class="conditional">
+        <div class="form-group">
+            <label>Yrityksen nimi</label>
+            <input type="text" id="companyName" placeholder="Yritys Oy">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Y-tunnus</label>
+                <input type="text" id="businessId" placeholder="1234567-8">
+            </div>
+            <div class="form-group">
+                <label>Yhteyshenkilö</label>
+                <input type="text" id="contactPerson" placeholder="Nimi">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Katuosoite</label>
+        <input type="text" id="address" placeholder="Aurinkokaari 5">
+    </div>
+    <div class="form-row">
+        <div class="form-group" style="flex:0 0 120px;">
+            <label>Postinumero</label>
+            <input type="text" id="postalCode" placeholder="00100" maxlength="5">
+        </div>
+        <div class="form-group">
+            <label>Paikkakunta</label>
+            <input type="text" id="city" placeholder="Helsinki">
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label>Puhelin</label>
+            <input type="tel" id="phone" placeholder="040 123 4567">
+        </div>
+        <div class="form-group">
+            <label>Sähköposti</label>
+            <input type="email" id="email" placeholder="matti@email.fi">
+        </div>
+    </div>
+</div>
+
+<!-- ======== STEP 2: ASENNUSKOHDE ======== -->
+<div class="step" id="step-2">
+    <div class="step-title">Asennuskohde</div>
+
+    <div class="checkbox-group">
+        <input type="checkbox" id="sameAddress" checked onchange="toggleSameAddress()">
+        <label for="sameAddress">Sama osoite kuin asiakkaan</label>
+    </div>
+
+    <div id="site-address-fields" class="conditional">
+        <div class="form-group">
+            <label>Kohteen osoite</label>
+            <input type="text" id="siteAddress" placeholder="Katuosoite">
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="flex:0 0 120px;">
+                <label>Postinumero</label>
+                <input type="text" id="sitePostalCode" placeholder="00100" maxlength="5">
+            </div>
+            <div class="form-group">
+                <label>Paikkakunta</label>
+                <input type="text" id="siteCity" placeholder="Helsinki">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Rakennustyyppi</label>
+        <select id="buildingType">
+            <option value="">— Valitse —</option>
+            <option value="Omakotitalo">Omakotitalo</option>
+            <option value="Paritalo">Paritalo</option>
+            <option value="Rivitalo">Rivitalo</option>
+            <option value="Kerrostalo">Kerrostalo</option>
+            <option value="Maatila">Maatila / maatalousrakennus</option>
+            <option value="Liikerakennus">Liikerakennus / teollisuus</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Kattotyyppi</label>
+            <select id="roofType">
+                <option value="">— Valitse —</option>
+                <option value="Harjakatto">Harjakatto</option>
+                <option value="Pulpettikatto">Pulpettikatto</option>
+                <option value="Tasakatto">Tasakatto</option>
+                <option value="Mansardikatto">Mansardikatto</option>
+                <option value="Muu">Muu</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Katemateriaali</label>
+            <select id="roofMaterial">
+                <option value="">— Valitse —</option>
+                <option value="Pelti">Pelti (pystysauma)</option>
+                <option value="Profiilipelti">Profiilipelti</option>
+                <option value="Tiili">Tiili (betoni/savi)</option>
+                <option value="Huopa/bitumi">Huopa / bitumi</option>
+                <option value="Muu">Muu</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Katon suuntaus</label>
+            <select id="roofDirection">
+                <option value="">— Valitse —</option>
+                <option value="Etelä">Etelä</option>
+                <option value="Kaakko">Kaakko</option>
+                <option value="Lounas">Lounas</option>
+                <option value="Itä–Länsi">Itä–Länsi</option>
+                <option value="Itä">Itä</option>
+                <option value="Länsi">Länsi</option>
+                <option value="Muu">Muu</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Katon kaltevuus</label>
+            <select id="roofAngle">
+                <option value="">— Valitse —</option>
+                <option value="0–10°">0–10° (loiva / tasakatto)</option>
+                <option value="10–25°">10–25°</option>
+                <option value="25–40°">25–40° (tyypillinen)</option>
+                <option value="40°+">40°+ (jyrkkä)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Pääsulake</label>
+        <select id="mainFuse">
+            <option value="">— Valitse —</option>
+            <option value="3x25A">3 x 25 A</option>
+            <option value="3x35A">3 x 35 A</option>
+            <option value="3x50A">3 x 50 A</option>
+            <option value="3x63A">3 x 63 A</option>
+        </select>
+    </div>
+</div>
+
+<!-- ======== STEP 3: JÄRJESTELMÄ ======== -->
+<div class="step" id="step-3">
+    <div class="step-title">Aurinkosähköjärjestelmä</div>
+
+    <div class="form-group">
+        <label>Paneelimalli</label>
+        <select id="panelModel" onchange="updateCalculations()">
+            <option value="">— Valitse —</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Paneelien lukumäärä</label>
+        <div class="number-group">
+            <button type="button" class="number-btn" onclick="adjustPanels(-1)">−</button>
+            <input type="number" id="panelCount" value="10" min="1" max="200" onchange="updateCalculations()">
+            <button type="button" class="number-btn" onclick="adjustPanels(1)">+</button>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Paneeliteho</label>
+            <div class="auto-value" id="panelPowerDisplay">— Wp</div>
+        </div>
+        <div class="form-group">
+            <label>Kokonaisteho</label>
+            <div class="auto-value" id="totalPowerDisplay">— kWp</div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Invertteri</label>
+        <select id="inverterModel">
+            <option value="">— Valitse —</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Akusto</label>
+        <div class="toggle-group">
+            <div class="radio-option">
+                <input type="radio" name="battery" id="bat-no" value="no" checked onchange="toggleBattery()">
+                <label for="bat-no">Ei</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="battery" id="bat-yes" value="yes" onchange="toggleBattery()">
+                <label for="bat-yes">Kyllä</label>
+            </div>
+        </div>
+    </div>
+
+    <div id="battery-fields" class="conditional">
+        <div class="form-group">
+            <label>Akustomalli</label>
+            <select id="batteryModel">
+                <option value="">— Valitse —</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Optimoijat</label>
+        <div class="toggle-group">
+            <div class="radio-option">
+                <input type="radio" name="optimizers" id="opt-no" value="no" checked>
+                <label for="opt-no">Ei</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="optimizers" id="opt-yes" value="yes">
+                <label for="opt-yes">Kyllä</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Arvioitu vuosituotanto</label>
+        <div class="auto-value" id="annualYieldDisplay">— kWh</div>
+    </div>
+</div>
+
+<!-- ======== STEP 4: HINTA JA EHDOT ======== -->
+<div class="step" id="step-4">
+    <div class="step-title">Hinta ja ehdot</div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Järjestelmän hinta (ALV 0 %)</label>
+            <input type="number" id="systemPrice" placeholder="0" onchange="updatePricing()" oninput="updatePricing()">
+        </div>
+        <div class="form-group">
+            <label>Asennuksen hinta (ALV 0 %)</label>
+            <input type="number" id="installPrice" placeholder="0" onchange="updatePricing()" oninput="updatePricing()">
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Yhteensä ALV 0 %</label>
+            <div class="auto-value" id="totalExVatDisplay">0 €</div>
+        </div>
+        <div class="form-group">
+            <label>ALV 25,5 %</label>
+            <div class="auto-value" id="vatDisplay">0 €</div>
+        </div>
+    </div>
+    <div class="form-group">
+        <label>Kokonaishinta sis. ALV</label>
+        <div class="auto-value" id="totalIncVatDisplay" style="font-size:18px;">0 €</div>
+    </div>
+
+    <hr class="summary-divider">
+
+    <div class="form-group">
+        <label>Maksutapa</label>
+        <div class="radio-group">
+            <div class="radio-option">
+                <input type="radio" name="paymentMethod" id="pay-cash" value="cash" checked>
+                <label for="pay-cash">Käteinen / tilisiirto</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="paymentMethod" id="pay-installment" value="installment">
+                <label for="pay-installment">Osamaksu</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" name="paymentMethod" id="pay-leasing" value="leasing">
+                <label for="pay-leasing">Leasing</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Arvioitu toimitusaika</label>
+        <select id="deliveryTime">
+            <option value="2–4 viikkoa">2–4 viikkoa</option>
+            <option value="4–6 viikkoa">4–6 viikkoa</option>
+            <option value="6–8 viikkoa">6–8 viikkoa</option>
+            <option value="Yli 8 viikkoa">Yli 8 viikkoa</option>
+            <option value="Sovitaan erikseen">Sovitaan erikseen</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Lisätiedot / huomautukset</label>
+        <textarea id="notes" placeholder="Vapaamuotoiset lisätiedot sopimukseen..."></textarea>
+    </div>
+</div>
+
+<!-- ======== STEP 5: YHTEENVETO ======== -->
+<div class="step" id="step-5">
+    <div class="step-title">Yhteenveto</div>
+    <div id="summary-content"></div>
+    <div class="download-area">
+        <button type="button" class="btn btn-download" onclick="downloadPdf()">
+            &#x1f4c4;&ensp;Lataa sopimus (PDF)
+        </button>
+    </div>
+</div>
+
+<!-- ======== NAVIGATION ======== -->
+<div class="nav-buttons" id="nav-buttons">
+    <button type="button" class="btn btn-secondary" id="btn-prev" onclick="prevStep()" style="visibility:hidden;">
+        &#x2190; Edellinen
+    </button>
+    <button type="button" class="btn btn-primary" id="btn-next" onclick="nextStep()">
+        Seuraava &#x2192;
+    </button>
+</div>
+
+</div><!-- /card -->
+</div><!-- /main -->
+
+<script>
+/* ======================================================
+   DATA
+   ====================================================== */
+const PANELS = [
+    { id: 'ja410',       name: 'JA Solar JAM54S31 410W',       power: 410 },
+    { id: 'longi430',    name: 'Longi Hi-MO 6 430W',           power: 430 },
+    { id: 'canadian435', name: 'Canadian Solar HiKu6 435W',    power: 435 },
+    { id: 'risen410',    name: 'Risen RSM40-8-410M 410W',      power: 410 },
+    { id: 'sunpower430', name: 'SunPower Maxeon 6 430W',       power: 430 }
+];
+
+const INVERTERS = [
+    { id: 'huawei3',  name: 'Huawei SUN2000-3KTL-M1 (3 kW)',  power: 3  },
+    { id: 'huawei5',  name: 'Huawei SUN2000-5KTL-M1 (5 kW)',  power: 5  },
+    { id: 'huawei8',  name: 'Huawei SUN2000-8KTL-M1 (8 kW)',  power: 8  },
+    { id: 'huawei10', name: 'Huawei SUN2000-10KTL-M1 (10 kW)',power: 10 },
+    { id: 'fronius5', name: 'Fronius Primo GEN24 5.0 (5 kW)',  power: 5  },
+    { id: 'fronius6', name: 'Fronius Primo GEN24 6.0 (6 kW)',  power: 6  },
+    { id: 'sma5',     name: 'SMA Sunny Boy 5.0 (5 kW)',        power: 5  }
+];
+
+const BATTERIES = [
+    { id: 'luna5',  name: 'Huawei LUNA2000-5 (5 kWh)',    capacity: 5   },
+    { id: 'luna10', name: 'Huawei LUNA2000-10 (10 kWh)',   capacity: 10  },
+    { id: 'luna15', name: 'Huawei LUNA2000-15 (15 kWh)',   capacity: 15  },
+    { id: 'byd5',   name: 'BYD HVS 5.1 (5,1 kWh)',        capacity: 5.1 },
+    { id: 'byd10',  name: 'BYD HVS 10.2 (10,2 kWh)',      capacity: 10.2}
+];
+
+const VAT = 0.255;
+const YIELD_FACTOR = 850; // kWh per kWp annually in Finland
+
+let currentStep = 1;
+const totalSteps = 5;
+
+/* ======================================================
+   INIT
+   ====================================================== */
+function init() {
+    populateSelect('panelModel', PANELS, 'id', 'name');
+    populateSelect('inverterModel', INVERTERS, 'id', 'name');
+    populateSelect('batteryModel', BATTERIES, 'id', 'name');
+    updateCalculations();
+}
+
+function populateSelect(selectId, items, valKey, textKey) {
+    const sel = document.getElementById(selectId);
+    items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item[valKey];
+        opt.textContent = item[textKey];
+        sel.appendChild(opt);
+    });
+}
+
+/* ======================================================
+   STEP NAVIGATION
+   ====================================================== */
+function showStep(n) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-' + n).classList.add('active');
+
+    // Progress bar
+    document.querySelectorAll('.progress-step').forEach(ps => {
+        const s = parseInt(ps.dataset.step);
+        ps.classList.toggle('active', s === n);
+        ps.classList.toggle('completed', s < n);
+    });
+    document.querySelectorAll('.progress-line').forEach(pl => {
+        const l = parseInt(pl.dataset.line);
+        pl.classList.toggle('completed', l < n);
+    });
+
+    // Buttons
+    document.getElementById('btn-prev').style.visibility = n === 1 ? 'hidden' : 'visible';
+    const btnNext = document.getElementById('btn-next');
+    if (n === totalSteps) {
+        btnNext.style.display = 'none';
+    } else if (n === totalSteps - 1) {
+        btnNext.style.display = 'flex';
+        btnNext.innerHTML = 'Luo yhteenveto &#x2192;';
+    } else {
+        btnNext.style.display = 'flex';
+        btnNext.innerHTML = 'Seuraava &#x2192;';
+    }
+
+    if (n === totalSteps) buildSummary();
+    currentStep = n;
+}
+
+function nextStep() { if (currentStep < totalSteps) showStep(currentStep + 1); }
+function prevStep() { if (currentStep > 1) showStep(currentStep - 1); }
+function goToStep(n) { if (n <= currentStep || n <= getMaxVisitedStep()) showStep(n); }
+function getMaxVisitedStep() { return currentStep; }
+
+/* ======================================================
+   CONDITIONAL FIELDS
+   ====================================================== */
+function toggleCustomerType() {
+    const isCompany = document.getElementById('ct-company').checked;
+    document.getElementById('private-fields').style.display = isCompany ? 'none' : 'block';
+    toggle('company-fields', isCompany);
+}
+
+function toggleSameAddress() {
+    const same = document.getElementById('sameAddress').checked;
+    toggle('site-address-fields', !same);
+}
+
+function toggleBattery() {
+    const yes = document.getElementById('bat-yes').checked;
+    toggle('battery-fields', yes);
+}
+
+function toggle(id, show) {
+    document.getElementById(id).classList.toggle('visible', show);
+}
+
+/* ======================================================
+   AUTO-CALCULATIONS
+   ====================================================== */
+function updateCalculations() {
+    const panelId = document.getElementById('panelModel').value;
+    const panel = PANELS.find(p => p.id === panelId);
+    const count = parseInt(document.getElementById('panelCount').value) || 0;
+
+    if (panel) {
+        document.getElementById('panelPowerDisplay').textContent = panel.power + ' Wp';
+        const totalKwp = (panel.power * count / 1000).toFixed(2);
+        document.getElementById('totalPowerDisplay').textContent = totalKwp + ' kWp';
+        const annualYield = Math.round(totalKwp * YIELD_FACTOR);
+        document.getElementById('annualYieldDisplay').textContent = annualYield.toLocaleString('fi-FI') + ' kWh';
+    } else {
+        document.getElementById('panelPowerDisplay').textContent = '— Wp';
+        document.getElementById('totalPowerDisplay').textContent = '— kWp';
+        document.getElementById('annualYieldDisplay').textContent = '— kWh';
+    }
+}
+
+function adjustPanels(delta) {
+    const input = document.getElementById('panelCount');
+    let val = parseInt(input.value) || 0;
+    val = Math.max(1, Math.min(200, val + delta));
+    input.value = val;
+    updateCalculations();
+}
+
+function updatePricing() {
+    const sys = parseFloat(document.getElementById('systemPrice').value) || 0;
+    const inst = parseFloat(document.getElementById('installPrice').value) || 0;
+    const total = sys + inst;
+    const vat = total * VAT;
+    const inc = total + vat;
+    document.getElementById('totalExVatDisplay').textContent = total.toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+    document.getElementById('vatDisplay').textContent = vat.toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+    document.getElementById('totalIncVatDisplay').textContent = inc.toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+}
+
+/* ======================================================
+   COLLECT FORM DATA
+   ====================================================== */
+function collectData() {
+    const isCompany = document.getElementById('ct-company').checked;
+    const sameAddr = document.getElementById('sameAddress').checked;
+    const hasBattery = document.getElementById('bat-yes').checked;
+    const hasOptimizers = document.getElementById('opt-yes').checked;
+    const panelId = document.getElementById('panelModel').value;
+    const panel = PANELS.find(p => p.id === panelId);
+    const inverterId = document.getElementById('inverterModel').value;
+    const inverter = INVERTERS.find(i => i.id === inverterId);
+    const batteryId = document.getElementById('batteryModel').value;
+    const battery = BATTERIES.find(b => b.id === batteryId);
+    const count = parseInt(document.getElementById('panelCount').value) || 0;
+    const totalKwp = panel ? (panel.power * count / 1000).toFixed(2) : '—';
+    const annualYield = panel ? Math.round(totalKwp * YIELD_FACTOR) : '—';
+
+    const sys = parseFloat(document.getElementById('systemPrice').value) || 0;
+    const inst = parseFloat(document.getElementById('installPrice').value) || 0;
+    const totalExVat = sys + inst;
+    const vat = totalExVat * VAT;
+    const totalIncVat = totalExVat + vat;
+
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const payLabels = { cash: 'Käteinen / tilisiirto', installment: 'Osamaksu', leasing: 'Leasing' };
+
+    return {
+        isCompany,
+        customerName: isCompany
+            ? document.getElementById('companyName').value
+            : (document.getElementById('firstName').value + ' ' + document.getElementById('lastName').value).trim(),
+        businessId: isCompany ? document.getElementById('businessId').value : '',
+        contactPerson: isCompany ? document.getElementById('contactPerson').value : '',
+        address: document.getElementById('address').value,
+        postalCode: document.getElementById('postalCode').value,
+        city: document.getElementById('city').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value,
+
+        sameAddress: sameAddr,
+        siteAddress: sameAddr ? document.getElementById('address').value : document.getElementById('siteAddress').value,
+        sitePostalCode: sameAddr ? document.getElementById('postalCode').value : document.getElementById('sitePostalCode').value,
+        siteCity: sameAddr ? document.getElementById('city').value : document.getElementById('siteCity').value,
+        buildingType: document.getElementById('buildingType').value,
+        roofType: document.getElementById('roofType').value,
+        roofMaterial: document.getElementById('roofMaterial').value,
+        roofDirection: document.getElementById('roofDirection').value,
+        roofAngle: document.getElementById('roofAngle').value,
+        mainFuse: document.getElementById('mainFuse').value,
+
+        panelName: panel ? panel.name : '—',
+        panelCount: count,
+        panelPower: panel ? panel.power : '—',
+        totalKwp,
+        inverterName: inverter ? inverter.name : '—',
+        hasBattery,
+        batteryName: hasBattery && battery ? battery.name : '—',
+        hasOptimizers,
+        annualYield,
+
+        systemPrice: sys,
+        installPrice: inst,
+        totalExVat,
+        vat,
+        totalIncVat,
+        paymentMethod: payLabels[paymentMethod] || paymentMethod,
+        deliveryTime: document.getElementById('deliveryTime').value,
+        notes: document.getElementById('notes').value,
+
+        contractNumber: generateContractNumber(),
+        date: new Date().toLocaleDateString('fi-FI')
+    };
+}
+
+function generateContractNumber() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const r = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    return 'ES-' + y + m + '-' + r;
+}
+
+/* ======================================================
+   SUMMARY
+   ====================================================== */
+function buildSummary() {
+    const d = collectData();
+    const eur = v => v.toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+
+    let html = '';
+
+    // Asiakas
+    html += summarySection('Asiakastiedot', 1, [
+        ['Asiakas', d.customerName],
+        d.isCompany ? ['Y-tunnus', d.businessId] : null,
+        d.isCompany && d.contactPerson ? ['Yhteyshenkilö', d.contactPerson] : null,
+        ['Osoite', d.address + ', ' + d.postalCode + ' ' + d.city],
+        ['Puhelin', d.phone],
+        ['Sähköposti', d.email]
+    ]);
+
+    // Kohde
+    html += summarySection('Asennuskohde', 2, [
+        ['Osoite', d.siteAddress + ', ' + d.sitePostalCode + ' ' + d.siteCity],
+        ['Rakennustyyppi', d.buildingType],
+        ['Katto', d.roofType + ' / ' + d.roofMaterial],
+        ['Suuntaus', d.roofDirection],
+        ['Kaltevuus', d.roofAngle],
+        ['Pääsulake', d.mainFuse]
+    ]);
+
+    // Järjestelmä
+    html += summarySection('Järjestelmä', 3, [
+        ['Paneelit', d.panelCount + ' x ' + d.panelName],
+        ['Kokonaisteho', d.totalKwp + ' kWp'],
+        ['Invertteri', d.inverterName],
+        ['Akusto', d.hasBattery ? d.batteryName : 'Ei'],
+        ['Optimoijat', d.hasOptimizers ? 'Kyllä' : 'Ei'],
+        ['Arvioitu vuosituotanto', (typeof d.annualYield === 'number' ? d.annualYield.toLocaleString('fi-FI') : d.annualYield) + ' kWh']
+    ]);
+
+    // Hinta
+    html += summarySection('Hinta ja ehdot', 4, [
+        ['Järjestelmä (ALV 0 %)', eur(d.systemPrice)],
+        ['Asennus (ALV 0 %)', eur(d.installPrice)],
+        ['Yhteensä (ALV 0 %)', eur(d.totalExVat)],
+        ['ALV 25,5 %', eur(d.vat)],
+        ['Maksutapa', d.paymentMethod],
+        ['Toimitusaika', d.deliveryTime],
+        d.notes ? ['Lisätiedot', d.notes] : null
+    ]);
+
+    html += '<div class="price-highlight">Kokonaishinta: ' + eur(d.totalIncVat) + '</div>';
+
+    document.getElementById('summary-content').innerHTML = html;
+}
+
+function summarySection(title, step, rows) {
+    let html = '<div class="summary-section">';
+    html += '<div class="summary-header"><h3>' + title + '</h3>';
+    html += '<button class="summary-edit" onclick="showStep(' + step + ')">Muokkaa</button></div>';
+    html += '<div class="summary-grid">';
+    rows.forEach(r => {
+        if (!r) return;
+        html += '<div class="summary-label">' + r[0] + '</div>';
+        html += '<div class="summary-value">' + (r[1] || '—') + '</div>';
+    });
+    html += '</div><hr class="summary-divider"></div>';
+    return html;
+}
+
+/* ======================================================
+   PDF GENERATION
+   ====================================================== */
+function downloadPdf() {
+    const d = collectData();
+    const eur = v => v.toLocaleString('fi-FI', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' €';
+
+    const contractHTML = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #333; padding: 10px; font-size: 13px; line-height: 1.5;">
+        <!-- HEADER -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #DAA520; padding-bottom: 12px; margin-bottom: 20px;">
+            <div>
+                <div style="font-size: 22px; font-weight: 700; color: #DAA520;">Energia Sunny Oy</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">Aurinkosähköjärjestelmän hankinta- ja asennussopimus</div>
+            </div>
+            <div style="text-align: right; font-size: 11px; color: #777;">
+                Sopimus nro: <strong>${d.contractNumber}</strong><br>
+                Päivämäärä: ${d.date}
+            </div>
+        </div>
+
+        <!-- 1. OSAPUOLET -->
+        <div style="font-size: 14px; font-weight: 700; color: #DAA520; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">1. Sopijaosapuolet</div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+                    <div style="font-weight: 600; margin-bottom: 4px;">Myyjä</div>
+                    <div>Energia Sunny Oy</div>
+                    <div style="color: #777; font-size: 12px;">Y-tunnus: XXXXXXX-X</div>
+                </td>
+                <td style="width: 50%; vertical-align: top;">
+                    <div style="font-weight: 600; margin-bottom: 4px;">Ostaja</div>
+                    <div>${d.customerName}</div>
+                    ${d.isCompany ? '<div style="color:#777;font-size:12px;">Y-tunnus: ' + d.businessId + '</div>' : ''}
+                    ${d.isCompany && d.contactPerson ? '<div style="font-size:12px;">Yhteyshenkilö: ' + d.contactPerson + '</div>' : ''}
+                    <div style="font-size: 12px;">${d.address}, ${d.postalCode} ${d.city}</div>
+                    <div style="font-size: 12px;">${d.phone} &nbsp;|&nbsp; ${d.email}</div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 2. ASENNUSKOHDE -->
+        <div style="font-size: 14px; font-weight: 700; color: #DAA520; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">2. Asennuskohde</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tr><td style="padding: 3px 0; width: 160px; color: #777;">Osoite</td><td>${d.siteAddress}, ${d.sitePostalCode} ${d.siteCity}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Rakennustyyppi</td><td>${d.buildingType}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Katto</td><td>${d.roofType}, ${d.roofMaterial}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Suuntaus / kaltevuus</td><td>${d.roofDirection} / ${d.roofAngle}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Pääsulake</td><td>${d.mainFuse}</td></tr>
+        </table>
+
+        <!-- 3. JÄRJESTELMÄ -->
+        <div style="font-size: 14px; font-weight: 700; color: #DAA520; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">3. Järjestelmän kuvaus</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tr><td style="padding: 3px 0; width: 160px; color: #777;">Paneelit</td><td>${d.panelCount} x ${d.panelName}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Kokonaisteho</td><td>${d.totalKwp} kWp</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Invertteri</td><td>${d.inverterName}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Akusto</td><td>${d.hasBattery ? d.batteryName : 'Ei sisälly'}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Optimoijat</td><td>${d.hasOptimizers ? 'Kyllä' : 'Ei'}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Arvioitu vuosituotanto</td><td>${typeof d.annualYield === 'number' ? d.annualYield.toLocaleString('fi-FI') : d.annualYield} kWh</td></tr>
+        </table>
+
+        <!-- 4. HINTA -->
+        <div style="font-size: 14px; font-weight: 700; color: #DAA520; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">4. Hinta ja maksuehdot</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tr><td style="padding: 3px 0; width: 200px; color: #777;">Järjestelmä (ALV 0 %)</td><td style="text-align:right; width:120px;">${eur(d.systemPrice)}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Asennus (ALV 0 %)</td><td style="text-align:right;">${eur(d.installPrice)}</td></tr>
+            <tr style="border-top: 1px solid #ddd;"><td style="padding: 5px 0; color: #777;">Yhteensä (ALV 0 %)</td><td style="text-align:right;">${eur(d.totalExVat)}</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">ALV 25,5 %</td><td style="text-align:right;">${eur(d.vat)}</td></tr>
+            <tr style="border-top: 2px solid #DAA520;"><td style="padding: 6px 0; font-weight: 700; font-size: 15px;">Kokonaishinta sis. ALV</td><td style="text-align:right; font-weight: 700; font-size: 15px; color: #DAA520;">${eur(d.totalIncVat)}</td></tr>
+        </table>
+        <div style="margin-top: 8px; font-size: 13px;"><strong>Maksutapa:</strong> ${d.paymentMethod}</div>
+        <div style="font-size: 13px;"><strong>Toimitusaika:</strong> ${d.deliveryTime}</div>
+        ${d.notes ? '<div style="font-size: 13px; margin-top: 4px;"><strong>Lisätiedot:</strong> ' + d.notes + '</div>' : ''}
+
+        <!-- 5. TAKUU -->
+        <div style="font-size: 14px; font-weight: 700; color: #DAA520; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">5. Takuuehdot</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tr><td style="padding: 3px 0; width: 200px; color: #777;">Paneelien tuotantotakuu</td><td>25 vuotta</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Invertteritakuu</td><td>10 vuotta</td></tr>
+            <tr><td style="padding: 3px 0; color: #777;">Asennustakuu</td><td>5 vuotta</td></tr>
+        </table>
+
+        <!-- 6. EHDOT -->
+        <div style="font-size: 14px; font-weight: 700; color: #DAA520; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">6. Yleiset ehdot</div>
+        <div style="font-size: 11px; color: #555; line-height: 1.6;">
+            <p style="margin-bottom:6px;">6.1 Järjestelmän omistusoikeus siirtyy ostajalle, kun kauppahinta on maksettu kokonaisuudessaan.</p>
+            <p style="margin-bottom:6px;">6.2 Myyjä vastaa asennuksen laadusta ja turvallisuudesta voimassa olevien määräysten mukaisesti.</p>
+            <p style="margin-bottom:6px;">6.3 Ostaja vastaa tarvittavien viranomaislupien hankkimisesta.</p>
+            <p style="margin-bottom:6px;">6.4 Mahdolliset reklamaatiot tulee tehdä kirjallisesti 14 päivän kuluessa asennuksen vastaanottotarkastuksesta.</p>
+            <p style="margin-bottom:6px;">6.5 Sopimukseen sovelletaan Suomen lakia. Erimielisyydet ratkaistaan ensisijaisesti neuvottelemalla.</p>
+        </div>
+
+        <!-- 7. ALLEKIRJOITUKSET -->
+        <div style="font-size: 14px; font-weight: 700; color: #DAA520; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">7. Allekirjoitukset</div>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 50px;">
+            <tr>
+                <td style="width: 45%; padding-right: 30px;">
+                    <div style="border-top: 1px solid #333; padding-top: 8px;">
+                        <div style="font-weight: 600;">Myyjä</div>
+                        <div style="font-size: 12px; color: #777;">Energia Sunny Oy</div>
+                        <div style="font-size: 12px; color: #777; margin-top: 4px;">Päivämäärä: ____/____/________</div>
+                    </div>
+                </td>
+                <td style="width: 10%;"></td>
+                <td style="width: 45%;">
+                    <div style="border-top: 1px solid #333; padding-top: 8px;">
+                        <div style="font-weight: 600;">Ostaja</div>
+                        <div style="font-size: 12px; color: #777;">${d.customerName}</div>
+                        <div style="font-size: 12px; color: #777; margin-top: 4px;">Päivämäärä: ____/____/________</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>`;
+
+    // Create temp container
+    const container = document.createElement('div');
+    container.innerHTML = contractHTML;
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.width = '210mm';
+    document.body.appendChild(container);
+
+    html2pdf().from(container).set({
+        margin: [12, 14, 12, 14],
+        filename: 'sopimus-' + d.contractNumber + '.pdf',
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).save().then(() => {
+        document.body.removeChild(container);
+    });
+}
+
+/* ======================================================
+   START
+   ====================================================== */
+init();
+</script>
+
+</body>
+</html>
